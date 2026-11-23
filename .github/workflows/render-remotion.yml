@@ -21,7 +21,9 @@ jobs:
           END=$(( START + 49 ))
           npx remotion render src/index.ts BridgeShort out/chunk.mp4 --frames=$START-$END --concurrency=2 --timeout=180000 --scale=0.5
       - uses: actions/upload-artifact@v4
-        with: { name: chunk-${{ matrix.chunk }}, path: out/chunk.mp4 }
+        with:
+          name: chunk-${{ matrix.chunk }}
+          path: out/chunk.mp4
   merge:
     needs: chunk
     runs-on: ubuntu-latest
