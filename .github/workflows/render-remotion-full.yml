@@ -1,0 +1,40 @@
+name: render-remotion-full
+on:
+  workflow_dispatch:
+jobs:
+  chunk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install --legacy-peer-deps --no-audit --no-fund
+      - run: npx remotion browser ensure
+      - name: Render chunk
+        run: |
+          START=$(( ${{ matrix.chunk }} * 51 ))
+          END=$(( START + 50 ))
+          if [ $END -gt 2024 ]; then END=2024; fi
+          npx remotion render src/index.ts BridgeShort out/chunk-${{ matrix.chunk }}.mp4 --frames=$START-$END --concurrency=2 --timeout=180000 --scale=1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: full-${{ matrix.chunk }}
+          path: out/chunk-${{ matrix.chunk }}.mp4
+  merge:
+    needs: chunk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: chunks, merge-multiple: true }
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: |
+          for f in $(ls chunks/*.mp4 | sort -V); do echo "file '$PWD/$f'"; done > list.txt
+          ffmpeg -y -f concat -safe 0 -i list.txt -c copy out.mp4
+          ls -lh out.mp4
+      - uses: actions/upload-artifact@v4
+        with: { name: bridge-full, path: out.mp4 }
