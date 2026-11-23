@@ -1,0 +1,22 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,DejaVu Sans,54,&H00FFFFFF,&H00FFFFFF,&H00101010,&H80000000,-1,0,0,0,100,100,0,0,1,4,2,2,60,60,170,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+Dialogue: 0,0:00:00.20,0:00:05.60,Default,,0,0,0,,12 ЛЕТ McDONALD’S РАЗДАВАЛ МИЛЛИОНЫ.\NПОБЕДИТЕЛЕЙ ПОЧТИ НЕ БЫЛО.
+Dialogue: 0,0:00:05.70,0:00:11.20,Default,,0,0,0,,ВЫИГРЫШНЫЕ БИЛЕТЫ\NНЕ ДОХОДИЛИ ДО ЛЮДЕЙ.
+Dialogue: 0,0:00:11.30,0:00:17.20,Default,,0,0,0,,ИХ ПЕЧАТАЛИ ЗДЕСЬ.
+Dialogue: 0,0:00:17.30,0:00:23.80,Default,,0,0,0,,ИХ ВЫНОСИЛ НАЧАЛЬНИК\NОХРАНЫ ТИПОГРАФИИ.
+Dialogue: 0,0:00:24.00,0:00:30.80,Default,,0,0,0,,ОН ОТДАВАЛ БИЛЕТЫ\NПОДСТАВНЫМ ПОБЕДИТЕЛЯМ.
+Dialogue: 0,0:00:31.00,0:00:36.20,Default,,0,0,0,,12 ЛЕТ.\N24 МИЛЛИОНА ДОЛЛАРОВ.
+Dialogue: 0,0:00:36.30,0:00:40.20,Default,,0,0,0,,ФБР ВЫШЛО НА НЕГО СЛУЧАЙНО.
+Dialogue: 0,0:00:40.30,0:00:43.20,Default,,0,0,0,,2001. АРЕСТ. 3 ГОДА.
+Dialogue: 0,0:00:43.30,0:00:44.90,Default,,0,0,0,,САМЫЙ БЕЗОПАСНЫЙ БИЛЕТ —\NТОТ, ЧТО ТЫ НАПЕЧАТАЛ САМ.
