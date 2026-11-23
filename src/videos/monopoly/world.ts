@@ -224,8 +224,10 @@ export class World {
     const t = u * u * (3 - 2 * u);
     camera.position.set(from.pos[0] + (to.pos[0] - from.pos[0]) * t, from.pos[1] + (to.pos[1] - from.pos[1]) * t, from.pos[2] + (to.pos[2] - from.pos[2]) * t);
     const look = new THREE.Vector3(from.look[0] + (to.look[0] - from.look[0]) * t, from.look[1] + (to.look[1] - from.look[1]) * t, from.look[2] + (to.look[2] - from.look[2]) * t);
+    camera.position.x += Math.sin(f * 0.033) * 0.035;
+    camera.position.y += Math.cos(f * 0.027) * 0.022;
     camera.lookAt(look);
-    camera.fov = from.fov + (to.fov - from.fov) * t;
+    camera.fov = from.fov + (to.fov - from.fov) * t + Math.sin(f * 0.019) * 0.45;
     camera.updateProjectionMatrix();
     const time = f / 30;
     Object.values(this.actors).forEach((x) => (x.a.mesh.visible = false));
