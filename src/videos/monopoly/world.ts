@@ -80,7 +80,9 @@ const ticketTex = () => texCanvas(700, 980, (c) => {
 });
 
 const ALT: Record<number, { pos: [number, number, number]; look: [number, number, number]; fov: number }> = {
+  5: { pos: [0.6, 1.35, 2.6], look: [0.6, 1.12, 0.8], fov: 30 },
   6: { pos: [0.0, 3.9, 4.8], look: [0.0, 4.4, -3.2], fov: 38 },
+  7: { pos: [1.2, 1.6, 2.2], look: [1.2, 1.5, 0.2], fov: 30 },
   8: { pos: [1.6, 1.1, 4.2], look: [0.2, 0.9, -0.6], fov: 38 },
 };
 
@@ -239,6 +241,8 @@ export class World {
       rec.a.mesh.scale.setScalar(sc);
       rec.a.mesh.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z);
     };
+    const hide = !!(cut && (id === 5 || id === 7));
+    if (!hide) {
     if (id === 1) { place('worker', -1.8, 2.8, 'neutral', 0, 1, 'stroll'); place('jacobson', 2.4, 3.0, 'grin', 0, 1, 'stand'); place('crowd1', -3.6, 1.2, 'neutral', 0, 0.95, 'stroll'); place('crowd2', 4.0, 1.6, 'neutral', 0, 0.95, 'stroll'); }
     if (id === 3) { place('worker', -2.2, 2.8, 'neutral', 0, 1, 'stroll'); }
     if (id === 4) { place('jacobson', 0.2, 1.8, 'grin', 0, 1.05, 'stand'); }
@@ -246,6 +250,7 @@ export class World {
     if (id === 6) { place('jacobson', 0.2, 1.7, 'grin', 0, 0.85, 'stand'); }
     if (id === 7) { place('fbi1', -0.8, 0.0, 'stern', 0, 1, 'stand'); place('fbi2', 0.8, 0.0, 'stern', 0, 1, 'stand'); }
     if (id === 8) { place('jacobson', 0, 1.6, 'shock', 0, 1, 'stroll'); place('fbi1', -1.4, 1.2, 'stern', 0, 1, 'stand'); place('crowd1', -3.2, 2.4, 'neutral', 0, 0.9, 'stroll'); place('crowd2', 3.2, 2.2, 'neutral', 0, 0.9, 'stroll'); }
+    }
     this.pool.flush();
     Object.values(this.actors).forEach((x) => { if (x.a.mesh.visible) x.a.bind(); });
     this.rollers.forEach((r) => (r.rotation.y = time * 2));
