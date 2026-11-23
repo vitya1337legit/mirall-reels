@@ -228,19 +228,22 @@ export class World {
     const place = (key: string, x: number, z: number, expr: any, facing: -1 | 0 | 1 = 0, sc = 1, mode: any = 'stand') => {
       const rec = this.actors[key]; if (!rec) return;
       const blink = (Math.floor(time * 1.7 + x) % 3) === 0;
-      rec.a.r = this.pool.req(`${key}-${expr}-${facing}-${blink}`, 600, 1000, 1, (p) => bodyFront(p, rec.o, { phase: time * 1.2, expr, mode, facing, blink, light: 0.8 }));
+      const walk = mode === 'stroll';
+      const ph = time * (walk ? 3.2 : 1.2);
+      rec.a.r = this.pool.req(`${key}-${expr}-${facing}-${blink}-${walk}`, 600, 1000, 1, (p) => bodyFront(p, rec.o, { phase: ph, expr, mode, facing, blink, light: 0.8, wave: walk ? 0 : 0.15 }));
       rec.a.mesh.visible = true;
-      rec.a.mesh.position.set(x, 0.02, z);
+      const wob = walk ? Math.sin(time * 2.2 + x) * 0.18 : 0;
+      rec.a.mesh.position.set(x + wob, 0.02, z);
       rec.a.mesh.scale.setScalar(sc);
       rec.a.mesh.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z);
     };
-    if (id === 1) { place('worker', -1.8, 2.8, 'neutral', 0, 1, 'stand'); place('jacobson', 2.4, 3.0, 'grin', 0, 1, 'stand'); place('crowd1', -3.6, 1.2, 'neutral', 0, 0.95, 'stand'); place('crowd2', 4.0, 1.6, 'neutral', 0, 0.95, 'stand'); }
+    if (id === 1) { place('worker', -1.8, 2.8, 'neutral', 0, 1, 'stroll'); place('jacobson', 2.4, 3.0, 'grin', 0, 1, 'stand'); place('crowd1', -3.6, 1.2, 'neutral', 0, 0.95, 'stroll'); place('crowd2', 4.0, 1.6, 'neutral', 0, 0.95, 'stroll'); }
     if (id === 3) { place('worker', -2.2, 2.8, 'neutral', 0, 1, 'stroll'); }
     if (id === 4) { place('jacobson', 0.2, 1.8, 'grin', 0, 1.05, 'stand'); }
     if (id === 5) { place('jacobson', -1.2, 0.0, 'grin', 0, 1, 'stand'); place('winner1', -0.1, 1.5, 'grin', 0, 1, 'stand'); place('winner2', 1.0, 1.5, 'whistle', 0, 1, 'stand'); }
     if (id === 6) { place('jacobson', 0.2, 1.7, 'grin', 0, 0.85, 'stand'); }
     if (id === 7) { place('fbi1', -0.8, 0.0, 'stern', 0, 1, 'stand'); place('fbi2', 0.8, 0.0, 'stern', 0, 1, 'stand'); }
-    if (id === 8) { place('jacobson', 0, 1.6, 'shock', 0, 1, 'stand'); place('fbi1', -1.4, 1.2, 'stern', 0, 1, 'stand'); place('crowd1', -3.2, 2.4, 'neutral', 0, 0.9, 'stand'); place('crowd2', 3.2, 2.2, 'neutral', 0, 0.9, 'stand'); }
+    if (id === 8) { place('jacobson', 0, 1.6, 'shock', 0, 1, 'stroll'); place('fbi1', -1.4, 1.2, 'stern', 0, 1, 'stand'); place('crowd1', -3.2, 2.4, 'neutral', 0, 0.9, 'stroll'); place('crowd2', 3.2, 2.2, 'neutral', 0, 0.9, 'stroll'); }
     this.pool.flush();
     Object.values(this.actors).forEach((x) => { if (x.a.mesh.visible) x.a.bind(); });
     this.rollers.forEach((r) => (r.rotation.y = time * 2));
