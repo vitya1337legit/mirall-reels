@@ -79,6 +79,11 @@ const ticketTex = () => texCanvas(700, 980, (c) => {
   for (let i = 0; i < 20; i++) c.fillRect(60 + i * 30, 820, 8, 80);
 });
 
+const ALT: Record<number, { pos: [number, number, number]; look: [number, number, number]; fov: number }> = {
+  6: { pos: [0.0, 3.9, 4.8], look: [0.0, 4.4, -3.2], fov: 38 },
+  8: { pos: [1.6, 1.1, 4.2], look: [0.2, 0.9, -0.6], fov: 38 },
+};
+
 export class World {
   root = new THREE.Group();
   sets: Record<string, THREE.Group> = {};
@@ -208,20 +213,17 @@ export class World {
   update(id: number, f: number, camera: THREE.PerspectiveCamera) {
     const s = SHOTS[id - 1];
     for (const k in this.sets) this.sets[k].visible = k === s.set;
-    const u = Math.min(1, Math.max(0, (f - s.a) / Math.max(1, s.b - s.a)));
+    const mid = (s.a + s.b) / 2;
+    const cut = ALT[id] && f >= mid;
+    const A = cut ? ALT[id] : null;
+    const from = A ? { pos: A.pos, look: A.look, fov: A.fov } : s.camFrom;
+    const to = A ? { pos: A.pos, look: A.look, fov: A.fov } : s.camTo;
+    const u = cut ? 0.5 : Math.min(1, Math.max(0, (f - s.a) / Math.max(1, mid - s.a)));
     const t = u * u * (3 - 2 * u);
-    camera.position.set(
-      s.camFrom.pos[0] + (s.camTo.pos[0] - s.camFrom.pos[0]) * t,
-      s.camFrom.pos[1] + (s.camTo.pos[1] - s.camFrom.pos[1]) * t,
-      s.camFrom.pos[2] + (s.camTo.pos[2] - s.camFrom.pos[2]) * t
-    );
-    const look = new THREE.Vector3(
-      s.camFrom.look[0] + (s.camTo.look[0] - s.camFrom.look[0]) * t,
-      s.camFrom.look[1] + (s.camTo.look[1] - s.camFrom.look[1]) * t,
-      s.camFrom.look[2] + (s.camTo.look[2] - s.camFrom.look[2]) * t
-    );
+    camera.position.set(from.pos[0] + (to.pos[0] - from.pos[0]) * t, from.pos[1] + (to.pos[1] - from.pos[1]) * t, from.pos[2] + (to.pos[2] - from.pos[2]) * t);
+    const look = new THREE.Vector3(from.look[0] + (to.look[0] - from.look[0]) * t, from.look[1] + (to.look[1] - from.look[1]) * t, from.look[2] + (to.look[2] - from.look[2]) * t);
     camera.lookAt(look);
-    camera.fov = s.camFrom.fov + (s.camTo.fov - s.camFrom.fov) * t;
+    camera.fov = from.fov + (to.fov - from.fov) * t;
     camera.updateProjectionMatrix();
     const time = f / 30;
     Object.values(this.actors).forEach((x) => (x.a.mesh.visible = false));
