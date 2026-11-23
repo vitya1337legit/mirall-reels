@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { SHOTS, shotAt } from './story';
+import { Pool, Actor } from '../bridge/cast';
+import { bodyFront, townsfolk, Outfit } from '../bridge/toon';
 
 const gradData = new Uint8Array([60, 130, 200, 255]);
 const grad = new THREE.DataTexture(gradData, gradData.length, 1, THREE.RedFormat);
@@ -71,11 +73,19 @@ export class World {
   car!: THREE.Group;
   cuffs!: THREE.Mesh[];
   finalTicket!: THREE.Mesh;
+  pool = new Pool();
+  actors: Record<string, { a: Actor; o: Outfit }> = {};
 
   constructor() {
     this.root.add(new THREE.HemisphereLight('#dbe8ff', '#2b2420', 0.9));
     const sun = new THREE.DirectionalLight('#fff1dc', 2.0); sun.position.set(6, 10, 8); sun.castShadow = true; this.root.add(sun);
     for (const s of SHOTS) { const g = new THREE.Group(); g.visible = false; this.root.add(g); this.sets[s.set] = g; }
+    this.mkActor('jacobson', { jacket: '#1b2436', pants: '#1a1e2a', boots: '#111116', hat: 'cap', cap: '#141b29', skin: '#e6b284', belt: '#d9b13b' });
+    this.mkActor('worker', { jacket: '#334d6e', pants: '#222a36', boots: '#1a1a20', hat: 'cap', cap: '#252930', skin: '#e6b488' });
+    this.mkActor('winner1', { jacket: '#287a6c', pants: '#1b3a34', boots: '#161616', hat: 'cap', cap: '#1c2b4a', skin: '#eab98e' });
+    this.mkActor('winner2', { jacket: '#6e3848', pants: '#2a1a20', boots: '#161616', hat: 'hair', hair: '#2e221a', skin: '#e2ae82' });
+    this.mkActor('fbi1', { jacket: '#3d3934', pants: '#262320', boots: '#111', hat: 'hair', hair: '#1e1b18', skin: '#e4b288' });
+    this.mkActor('fbi2', { jacket: '#8c7d65', pants: '#3a322a', boots: '#111', hat: 'hair', hair: '#423326', skin: '#dfb086' });
     this.buildPrint();
     this.buildTicket();
     this.buildOffice();
@@ -84,6 +94,11 @@ export class World {
     this.buildFbi();
     this.buildStreet();
     this.buildFinal();
+  }
+
+  private mkActor(key: string, outfit: Outfit) {
+    const a = new Actor(this.root);
+    this.actors[key] = { a, o: outfit };
   }
 
   buildPrint() {
@@ -98,10 +113,8 @@ export class World {
     web.position.set(0, 2.6, 0.6); web.rotation.x = 0.9; g.add(web);
     box(4.2, 0.3, 6.2, '#2a2e38', 0, 1.0, 3.0, g);
     for (let z = 0; z < 6; z++) { const r = cyl(0.1, 0.1, 3.8, '#555d6a', 0, 1.2, 0.2 + z * 0.9, g, [0, 0, Math.PI / 2]); }
-    for (let i = 0; i < 4; i++) box(1.4, 1.2 + i * 0.4, 1.2, '#e7dcc4', -5 + i * 3.2, 0.6 + i * 0.2, 2.4, g);
+    for (let i = 0; i < 4; i++) box(1.0, 0.8 + i * 0.3, 0.9, '#e7dcc4', -5 + i * 3.2, 0.4 + i * 0.15, 3.6, g);
     for (const x of [-3.2, 0, 3.2]) { cyl(0.08, 0.08, 2, '#444', x, 6.0, 1, g); const b = sph(0.2, '#ff2b22', x, 5.0, 1, g); }
-    figure('#334d6e', '#e6b488', -2.4, 0.2, g, 1.0, '#252930');
-    figure('#26364a', '#e6b488', 2.6, 1.0, g, 1.0, '#252930');
   }
 
   buildTicket() {
@@ -126,7 +139,6 @@ export class World {
     cyl(0.2, 0.2, 0.1, '#d9a83b', -1.2, 1.2, 0.2, g); cyl(0.04, 0.04, 0.7, '#d9a83b', -1.2, 1.55, 0.2, g);
     box(0.6, 0.25, 0.35, '#1f6e43', -1.2, 1.9, 0.2, g);
     plane(3.4, 2.0, texCanvas(512, 300, (c) => { c.fillStyle = '#e8dfc8'; c.fillRect(0, 0, 512, 300); c.fillStyle = '#9db58d'; c.fillRect(30, 40, 450, 210); c.fillStyle = '#141110'; c.font = '900 32px Arial'; c.fillText('США', 220, 160); }), 2.2, 3.4, -5.25, g);
-    figure('#25262c', '#e8b98e', 0.2, 1.9, g, 1.1, '#111116');
   }
 
   buildScheme() {
@@ -137,9 +149,6 @@ export class World {
     for (let i = 0; i < 6; i++) box(0.6, 0.08, 0.4, '#d4b475', -1.2 + i * 0.48, 1.2, 0.6, g);
     for (let i = 0; i < 4; i++) box(0.4, 0.04, 0.55, '#d42c24', -0.7 + i * 0.5, 1.22, 1.0, g);
     for (let i = 0; i < 4; i++) box(0.45, 0.18, 0.25, '#3f7a4a', 1.8, 1.2 + i * 0.2, 0.4, g);
-    figure('#2f4d7a', '#e8b98e', -2.2, 1.4, g, 1.0, '#131722');
-    figure('#287a6c', '#eab98e', -0.8, 1.5, g, 1.0, '#1c2b4a');
-    figure('#6e3848', '#e2ae82', 0.7, 1.5, g, 1.0, '#2e221a');
   }
 
   buildVault() {
@@ -148,7 +157,6 @@ export class World {
     box(18, 9, 0.4, '#1b211d', 0, 4.5, -5.8, g);
     plane(5.4, 2.6, texCanvas(800, 400, (c) => { c.fillStyle = '#12151c'; c.fillRect(0, 0, 800, 400); c.fillStyle = '#ffd43b'; c.font = '900 64px Arial Black'; c.textAlign = 'center'; c.fillText('12 ЛЕТ • 1989–2001', 400, 120); c.fillStyle = '#ff3b30'; c.font = '900 92px Arial Black'; c.fillText('$24 000 000', 400, 280); }), 0, 4.6, -5.5, g);
     for (let i = 0; i < 10; i++) { const x = -3.6 + (i % 5) * 1.8; const z = -2 + Math.floor(i / 5) * 1.6; for (let k = 0; k < 3; k++) { const m = box(0.9, 0.8 + k * 0.6, 0.9, '#3f7a4a', x, 0.5 + k * 0.3, z, g); this.money.push(m); } }
-    figure('#1b2436', '#e6b284', 0.2, 1.6, g, 0.9, '#141b29');
   }
 
   buildFbi() {
@@ -157,9 +165,7 @@ export class World {
     box(16, 8, 0.4, '#394352', 0, 4, -5.2, g);
     box(5.2, 0.2, 2.0, '#3a414c', 0, 1.05, 0.5, g);
     for (let i = 0; i < 6; i++) box(0.7, 0.12, 0.9, '#d4b475', -1.6 + (i % 3) * 0.8, 1.2 + Math.floor(i / 3) * 0.12, 0.4, g);
-    plane(1.2, 1.5, texCanvas(512, 640, (c) => { c.fillStyle = '#f0be3d'; c.beginPath(); c.moveTo(256, 40); c.lineTo(440, 130); c.quadraticCurveTo(450, 380, 256, 600); c.quadraticCurveTo(62, 380, 72, 130); c.closePath(); c.fill(); c.strokeStyle = '#141110'; c.lineWidth = 16; c.stroke(); c.fillStyle = '#17376e'; c.fillRect(140, 160, 232, 80); c.fillStyle = '#ffd54a'; c.font = '900 42px Arial Black'; c.textAlign = 'center'; c.fillText('ФБР • FBI', 256, 214); }), 0, 1.9, 1.2, g);
-    figure('#3d3934', '#e4b288', -1.4, 1.6, g, 1.0, '#1e1b18');
-    figure('#8c7d65', '#dfb086', 1.4, 1.6, g, 1.0, '#423326');
+    plane(1.2, 1.5, texCanvas(512, 640, (c) => { c.fillStyle = '#f0be3d'; c.beginPath(); c.moveTo(256, 40); c.lineTo(440, 130); c.quadraticCurveTo(450, 380, 256, 600); c.quadraticCurveTo(62, 380, 72, 130); c.closePath(); c.fill(); c.strokeStyle = '#141110'; c.lineWidth = 16; c.stroke(); c.fillStyle = '#17376e'; c.fillRect(140, 160, 232, 80); c.fillStyle = '#ffd54a'; c.font = '900 42px Arial Black'; c.textAlign = 'center'; c.fillText('ФБР • FBI', 256, 214); }), 1.9, 1.8, 1.0, g);
   }
 
   buildStreet() {
@@ -172,8 +178,6 @@ export class World {
     box(2.2, 0.7, 1.8, '#f2f4f8', -0.2, 1.3, 0, this.car);
     for (const [x, z] of [[-1.3, -0.9], [1.3, -0.9], [-1.3, 0.9], [1.3, 0.9]]) cyl(0.35, 0.35, 0.25, '#1b1b20', x, 0.35, z, this.car, [Math.PI / 2, 0, 0]);
     this.car.position.set(3, 0, -2); this.car.rotation.y = -0.3; g.add(this.car);
-    figure('#1b2436', '#e6b284', 0, 1.8, g, 1.0, '#141b29');
-    figure('#3d3934', '#e4b288', -1.3, 1.5, g, 1.0, '#1e1b18');
   }
 
   buildFinal() {
@@ -203,6 +207,25 @@ export class World {
     camera.fov = s.camFrom.fov + (s.camTo.fov - s.camFrom.fov) * t;
     camera.updateProjectionMatrix();
     const time = f / 30;
+    Object.values(this.actors).forEach((x) => (x.a.mesh.visible = false));
+    const place = (key: string, x: number, z: number, expr: any, facing: -1 | 0 | 1 = 0, sc = 1, mode: any = 'stand') => {
+      const rec = this.actors[key]; if (!rec) return;
+      const blink = (Math.floor(time * 1.7 + x) % 3) === 0;
+      rec.a.r = this.pool.req(`${key}-${expr}-${facing}-${blink}`, 600, 1000, 1, (p) => bodyFront(p, rec.o, { phase: time * 1.2, expr, mode, facing, blink, light: 0.8 }));
+      rec.a.mesh.visible = true;
+      rec.a.mesh.position.set(x, 0.02, z);
+      rec.a.mesh.scale.setScalar(sc);
+      rec.a.mesh.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z);
+    };
+    if (id === 1) { place('worker', -2.5, 2.6, 'neutral', 0, 1, 'stand'); place('jacobson', 2.4, 3.0, 'grin', 0, 1, 'stand'); }
+    if (id === 3) { place('worker', -2.2, 2.8, 'neutral', 0, 1, 'stroll'); }
+    if (id === 4) { place('jacobson', 0.2, 2.2, 'grin', 0, 1.05, 'stand'); }
+    if (id === 5) { place('jacobson', -1.9, 2.0, 'grin', 0, 1, 'stand'); place('winner1', -0.6, 2.0, 'grin', 0, 1, 'stand'); place('winner2', 0.8, 2.0, 'whistle', 0, 1, 'stand'); }
+    if (id === 6) { place('jacobson', 0.2, 1.7, 'grin', 0, 0.85, 'stand'); }
+    if (id === 7) { place('fbi1', -0.8, 1.5, 'stern', 0, 1, 'stand'); place('fbi2', 0.8, 1.5, 'stern', 0, 1, 'stand'); }
+    if (id === 8) { place('jacobson', 0, 1.8, 'shock', 0, 1, 'stand'); place('fbi1', -1.5, 1.4, 'stern', 0, 1, 'stand'); }
+    this.pool.flush();
+    Object.values(this.actors).forEach((x) => { if (x.a.mesh.visible) x.a.bind(); });
     this.rollers.forEach((r) => (r.rotation.y = time * 2));
     if (this.ticket) this.ticket.rotation.z = 0.06 + Math.sin(time * 1.5) * 0.04;
     this.money.forEach((m, i) => (m.position.y += Math.sin(time * 2 + i) * 0.0005));
