@@ -9,10 +9,15 @@
   },
   "private": true,
   "dependencies": {
+    "@react-three/fiber": "^8.17.10",
+    "@react-three/postprocessing": "^2.16.3",
     "@remotion/cli": "4.0.546",
-    "react": "19.3.1",
-    "react-dom": "19.3.1",
-    "remotion": "4.0.546"
+    "@remotion/three": "^4.0.546",
+    "postprocessing": "^6.35.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "4.0.546",
+    "three": "^0.170.0"
   },
   "devDependencies": {
     "@remotion/eslint-config-flat": "4.0.546",
