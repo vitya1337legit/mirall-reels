@@ -1,0 +1,37 @@
+name: render-remotion
+on: workflow_dispatch
+jobs:
+  chunk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        chunk: [0,1,2,3,4,5]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm install --legacy-peer-deps --no-audit --no-fund
+      - run: npx remotion browser ensure
+      - name: Render chunk
+        run: |
+          START=$(( ${{ matrix.chunk }} * 50 ))
+          END=$(( START + 49 ))
+          npx remotion render src/index.ts BridgeShort out/chunk.mp4 --frames=$START-$END --concurrency=2 --timeout=180000 --scale=0.5
+      - uses: actions/upload-artifact@v4
+        with: { name: chunk-${{ matrix.chunk }}, path: out/chunk.mp4 }
+  merge:
+    needs: chunk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: chunks, merge-multiple: true }
+      - run: |
+          ls -lh chunks
+          for f in $(ls chunks/*.mp4 | sort -V); do echo "file '$PWD/$f'"; done > list.txt
+          cat list.txt
+          ffmpeg -y -f concat -safe 0 -i list.txt -c copy out.mp4
+          ls -lh out.mp4
+      - uses: actions/upload-artifact@v4
+        with: { name: test-10s, path: out.mp4 }
