@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { SHOTS, shotAt } from './story';
 import { Pool, Actor } from '../bridge/cast';
 import { bodyFront, townsfolk, Outfit } from '../bridge/toon';
+import { planksHD, brick, stoneHD, cobbleHD, rep } from '../bridge/paint';
+import { boxGeo, V } from '../bridge/build';
 
 const gradData = new Uint8Array([60, 130, 200, 255]);
 const grad = new THREE.DataTexture(gradData, gradData.length, 1, THREE.RedFormat);
@@ -9,16 +11,29 @@ grad.minFilter = grad.magFilter = THREE.NearestFilter;
 grad.needsUpdate = true;
 
 const mat = (color: string) => new THREE.MeshToonMaterial({ color, gradientMap: grad });
+const tmat = (map: THREE.Texture) => new THREE.MeshToonMaterial({ map, gradientMap: grad });
+const woodT = planksHD(); rep(woodT, 24, 24);
+const brickT = brick(); rep(brickT, 18, 10);
+const stoneT = stoneHD(); rep(stoneT, 12, 12);
+const cobbleT = cobbleHD(); rep(cobbleT, 20, 20);
+const TM = { wood: tmat(woodT), brick: tmat(brickT), stone: tmat(stoneT), cobble: tmat(cobbleT) };
 const ink = new THREE.LineBasicMaterial({ color: '#0b0a0c', transparent: true, opacity: 0.85 });
 
 function edges(m: THREE.Mesh) {
   m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry, 30), ink));
   return m;
 }
-function box(w: number, h: number, d: number, color: string, x: number, y: number, z: number, p: THREE.Group) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
+function box(w: number, h: number, d: number, color: string | THREE.Material, x: number, y: number, z: number, p: THREE.Group) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), typeof color === 'string' ? mat(color) : color);
   m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; p.add(edges(m)); return m;
 }
+
+function tbox(w: number, h: number, d: number, material: THREE.Material, x: number, y: number, z: number, p: THREE.Group, tile = 1) {
+  const geo = boxGeo(V(x - w / 2, y - h / 2, z - d / 2), V(x + w / 2, y + h / 2, z + d / 2), tile);
+  const m = new THREE.Mesh(geo, material);
+  m.castShadow = m.receiveShadow = true; p.add(m); return m;
+}
+
 function cyl(rt: number, rb: number, h: number, color: string, x: number, y: number, z: number, p: THREE.Group, rot?: [number, number, number]) {
   const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, 24), mat(color));
   m.position.set(x, y, z); if (rot) m.rotation.set(...rot); m.castShadow = m.receiveShadow = true; p.add(edges(m)); return m;
@@ -103,8 +118,8 @@ export class World {
 
   buildPrint() {
     const g = this.sets.print;
-    box(22, 0.3, 22, '#1a1a22', 0, -0.15, 0, g);
-    box(22, 9, 0.4, '#2b2b36', 0, 4.5, -6, g);
+    tbox(22, 0.3, 22, TM.wood, 0, -0.15, 0, g, 1.2);
+    tbox(22, 9, 0.4, TM.brick, 0, 4.5, -6, g, 1.2);
     box(5.4, 4.4, 3.2, '#3b4050', 0, 2.2, -1.8, g);
     const r1 = cyl(0.8, 0.8, 4.0, '#7a8494', 0, 3.5, -1.2, g, [0, 0, Math.PI / 2]);
     const r2 = cyl(0.8, 0.8, 4.0, '#7a8494', 0, 1.9, -1.2, g, [0, 0, Math.PI / 2]);
@@ -119,8 +134,8 @@ export class World {
 
   buildTicket() {
     const g = this.sets.ticket;
-    box(16, 0.3, 16, '#3a2a1c', 0, -0.15, 0, g);
-    box(16, 8, 0.4, '#4a3624', 0, 4, -5.5, g);
+    tbox(16, 0.3, 16, TM.wood, 0, -0.15, 0, g, 1.2);
+    tbox(16, 8, 0.4, TM.brick, 0, 4, -5.5, g, 1.2);
     this.ticket = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 6.4), new THREE.MeshBasicMaterial({ map: ticketTex(), side: THREE.DoubleSide }));
     this.ticket.position.set(0, 0.8, 0.6); this.ticket.rotation.set(-Math.PI / 2 + 0.12, 0, 0.06); g.add(this.ticket);
     box(5.2, 0.08, 6.8, '#5a3a22', 0, 0.05, 0.6, g);
@@ -129,8 +144,8 @@ export class World {
 
   buildOffice() {
     const g = this.sets.office;
-    box(18, 0.3, 18, '#1b1714', 0, -0.15, 0, g);
-    box(18, 8, 0.4, '#3a2a20', 0, 4, -5.5, g);
+    tbox(18, 0.3, 18, TM.wood, 0, -0.15, 0, g, 1.2);
+    tbox(18, 8, 0.4, TM.brick, 0, 4, -5.5, g, 1.2);
     box(5.4, 0.2, 2.4, '#5a3a22', 0, 1.1, 0.4, g);
     for (const [x, z] of [[-2.4, -0.6], [2.4, -0.6], [-2.4, 1.4], [2.4, 1.4]]) box(0.2, 1.1, 0.2, '#3a2616', x, 0.55, z, g);
     box(1.8, 2.2, 1.6, '#3b4048', -4.2, 1.1, -1.6, g);
@@ -143,8 +158,8 @@ export class World {
 
   buildScheme() {
     const g = this.sets.scheme;
-    box(16, 0.3, 16, '#3b332d', 0, -0.15, 0, g);
-    box(16, 8, 0.4, '#594b3e', 0, 4, -5.2, g);
+    tbox(16, 0.3, 16, TM.wood, 0, -0.15, 0, g, 1.2);
+    tbox(16, 8, 0.4, TM.brick, 0, 4, -5.2, g, 1.2);
     box(5.4, 0.2, 1.8, '#5a3a22', 0, 1.05, 0.6, g);
     for (let i = 0; i < 6; i++) box(0.6, 0.08, 0.4, '#d4b475', -1.2 + i * 0.48, 1.2, 0.6, g);
     for (let i = 0; i < 4; i++) box(0.4, 0.04, 0.55, '#d42c24', -0.7 + i * 0.5, 1.22, 1.0, g);
@@ -153,16 +168,16 @@ export class World {
 
   buildVault() {
     const g = this.sets.vault;
-    box(18, 0.3, 18, '#161b18', 0, -0.15, 0, g);
-    box(18, 9, 0.4, '#1b211d', 0, 4.5, -5.8, g);
+    tbox(18, 0.3, 18, TM.stone, 0, -0.15, 0, g, 1.5);
+    tbox(18, 9, 0.4, TM.stone, 0, 4.5, -5.8, g, 1.5);
     plane(5.4, 2.6, texCanvas(800, 400, (c) => { c.fillStyle = '#12151c'; c.fillRect(0, 0, 800, 400); c.fillStyle = '#ffd43b'; c.font = '900 64px Arial Black'; c.textAlign = 'center'; c.fillText('12 ЛЕТ • 1989–2001', 400, 120); c.fillStyle = '#ff3b30'; c.font = '900 92px Arial Black'; c.fillText('$24 000 000', 400, 280); }), 0, 4.6, -5.5, g);
     for (let i = 0; i < 10; i++) { const x = -3.6 + (i % 5) * 1.8; const z = -2 + Math.floor(i / 5) * 1.6; for (let k = 0; k < 3; k++) { const m = box(0.9, 0.8 + k * 0.6, 0.9, '#3f7a4a', x, 0.5 + k * 0.3, z, g); this.money.push(m); } }
   }
 
   buildFbi() {
     const g = this.sets.fbi;
-    box(16, 0.3, 16, '#2b323d', 0, -0.15, 0, g);
-    box(16, 8, 0.4, '#394352', 0, 4, -5.2, g);
+    tbox(16, 0.3, 16, TM.stone, 0, -0.15, 0, g, 1.5);
+    tbox(16, 8, 0.4, TM.stone, 0, 4, -5.2, g, 1.5);
     box(5.2, 0.2, 2.0, '#3a414c', 0, 1.05, 0.5, g);
     for (let i = 0; i < 6; i++) box(0.7, 0.12, 0.9, '#d4b475', -1.6 + (i % 3) * 0.8, 1.2 + Math.floor(i / 3) * 0.12, 0.4, g);
     plane(1.2, 1.5, texCanvas(512, 640, (c) => { c.fillStyle = '#f0be3d'; c.beginPath(); c.moveTo(256, 40); c.lineTo(440, 130); c.quadraticCurveTo(450, 380, 256, 600); c.quadraticCurveTo(62, 380, 72, 130); c.closePath(); c.fill(); c.strokeStyle = '#141110'; c.lineWidth = 16; c.stroke(); c.fillStyle = '#17376e'; c.fillRect(140, 160, 232, 80); c.fillStyle = '#ffd54a'; c.font = '900 42px Arial Black'; c.textAlign = 'center'; c.fillText('ФБР • FBI', 256, 214); }), 1.9, 1.8, 1.0, g);
@@ -170,7 +185,7 @@ export class World {
 
   buildStreet() {
     const g = this.sets.street;
-    box(28, 0.3, 28, '#24272e', 0, -0.15, 0, g);
+    tbox(28, 0.3, 28, TM.cobble, 0, -0.15, 0, g, 1.0);
     for (let i = 0; i < 4; i++) box(6, 9, 4, i % 2 ? '#2c2b30' : '#343038', -9 + i * 6, 4.5, -8, g);
     for (let i = 0; i < 8; i++) box(0.6, 0.9, 0.05, '#ffd06a', -10 + i * 2.6, 3 + (i % 3) * 1.2, -5.9, g);
     this.car = new THREE.Group();
@@ -182,7 +197,7 @@ export class World {
 
   buildFinal() {
     const g = this.sets.final;
-    box(16, 0.3, 16, '#1a1a1e', 0, -0.15, 0, g);
+    tbox(16, 0.3, 16, TM.wood, 0, -0.15, 0, g, 1.2);
     box(16, 8, 0.4, '#2b2b33', 0, 4, -5.2, g);
     this.finalTicket = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.5), new THREE.MeshBasicMaterial({ map: ticketTex(), side: THREE.DoubleSide }));
     this.finalTicket.position.set(0, 2.0, 0.8); this.finalTicket.rotation.set(-0.4, 0.2, 0.2); g.add(this.finalTicket);
@@ -217,10 +232,10 @@ export class World {
       rec.a.mesh.scale.setScalar(sc);
       rec.a.mesh.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z);
     };
-    if (id === 1) { place('worker', -2.5, 2.6, 'neutral', 0, 1, 'stand'); place('jacobson', 2.4, 3.0, 'grin', 0, 1, 'stand'); }
+    if (id === 1) { place('worker', -1.8, 2.8, 'neutral', 0, 1, 'stand'); place('jacobson', 2.4, 3.0, 'grin', 0, 1, 'stand'); }
     if (id === 3) { place('worker', -2.2, 2.8, 'neutral', 0, 1, 'stroll'); }
     if (id === 4) { place('jacobson', 0.2, 2.2, 'grin', 0, 1.05, 'stand'); }
-    if (id === 5) { place('jacobson', -1.9, 2.0, 'grin', 0, 1, 'stand'); place('winner1', -0.6, 2.0, 'grin', 0, 1, 'stand'); place('winner2', 0.8, 2.0, 'whistle', 0, 1, 'stand'); }
+    if (id === 5) { place('jacobson', -1.2, 2.0, 'grin', 0, 1, 'stand'); place('winner1', -0.1, 2.0, 'grin', 0, 1, 'stand'); place('winner2', 1.0, 2.0, 'whistle', 0, 1, 'stand'); }
     if (id === 6) { place('jacobson', 0.2, 1.7, 'grin', 0, 0.85, 'stand'); }
     if (id === 7) { place('fbi1', -0.8, 1.5, 'stern', 0, 1, 'stand'); place('fbi2', 0.8, 1.5, 'stern', 0, 1, 'stand'); }
     if (id === 8) { place('jacobson', 0, 1.8, 'shock', 0, 1, 'stand'); place('fbi1', -1.5, 1.4, 'stern', 0, 1, 'stand'); }
