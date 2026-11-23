@@ -1,0 +1,213 @@
+import * as THREE from 'three';
+import { SHOTS, shotAt } from './story';
+
+const gradData = new Uint8Array([60, 130, 200, 255]);
+const grad = new THREE.DataTexture(gradData, gradData.length, 1, THREE.RedFormat);
+grad.minFilter = grad.magFilter = THREE.NearestFilter;
+grad.needsUpdate = true;
+
+const mat = (color: string) => new THREE.MeshToonMaterial({ color, gradientMap: grad });
+const ink = new THREE.LineBasicMaterial({ color: '#0b0a0c', transparent: true, opacity: 0.85 });
+
+function edges(m: THREE.Mesh) {
+  m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry, 30), ink));
+  return m;
+}
+function box(w: number, h: number, d: number, color: string, x: number, y: number, z: number, p: THREE.Group) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
+  m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; p.add(edges(m)); return m;
+}
+function cyl(rt: number, rb: number, h: number, color: string, x: number, y: number, z: number, p: THREE.Group, rot?: [number, number, number]) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, 24), mat(color));
+  m.position.set(x, y, z); if (rot) m.rotation.set(...rot); m.castShadow = m.receiveShadow = true; p.add(edges(m)); return m;
+}
+function sph(r: number, color: string, x: number, y: number, z: number, p: THREE.Group) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 14), mat(color));
+  m.position.set(x, y, z); m.castShadow = true; p.add(m); return m;
+}
+function texCanvas(w: number, h: number, draw: (c: CanvasRenderingContext2D) => void) {
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  draw(cv.getContext('2d')!);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+function plane(w: number, h: number, texture: THREE.Texture, x: number, y: number, z: number, p: THREE.Group, rot?: [number, number, number]) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: texture, side: THREE.DoubleSide }));
+  m.position.set(x, y, z); if (rot) m.rotation.set(...rot); p.add(m); return m;
+}
+function figure(color: string, skin: string, x: number, z: number, p: THREE.Group, scale = 1, hat = '#14141a') {
+  const g = new THREE.Group();
+  cyl(0.28, 0.34, 1.0, color, 0, 0.9, 0, g);
+  sph(0.28, skin, 0, 1.58, 0, g);
+  cyl(0.3, 0.3, 0.1, hat, 0, 1.8, 0, g);
+  sph(0.28, hat, 0, 1.87, 0, g);
+  sph(0.045, '#f8f4ea', -0.09, 1.62, 0.245, g);
+  sph(0.045, '#f8f4ea', 0.09, 1.62, 0.245, g);
+  sph(0.022, '#111116', -0.09, 1.62, 0.285, g);
+  sph(0.022, '#111116', 0.09, 1.62, 0.285, g);
+  cyl(0.08, 0.08, 0.8, color, -0.32, 1.15, 0, g, [0, 0, 0.18]);
+  cyl(0.08, 0.08, 0.8, color, 0.32, 1.15, 0, g, [0, 0, -0.18]);
+  cyl(0.09, 0.09, 0.75, '#1a1a20', -0.13, 0.38, 0, g);
+  cyl(0.09, 0.09, 0.75, '#1a1a20', 0.13, 0.38, 0, g);
+  g.position.set(x, 0, z); g.scale.setScalar(scale); p.add(g); return g;
+}
+
+const ticketTex = () => texCanvas(700, 980, (c) => {
+  c.fillStyle = '#f8f0dd'; c.fillRect(0, 0, 700, 980);
+  c.strokeStyle = '#c9231d'; c.lineWidth = 18; c.strokeRect(18, 18, 664, 944);
+  c.fillStyle = '#17376e'; c.fillRect(50, 50, 600, 150);
+  c.fillStyle = '#ffd43b'; c.font = '900 64px Arial Black'; c.textAlign = 'center'; c.fillText('MONOPOLY', 350, 150);
+  c.fillStyle = '#d6221b'; c.font = '900 190px Arial Black'; c.fillText('WIN', 350, 430);
+  c.fillStyle = '#176e38'; c.font = '900 74px Arial Black'; c.fillText('$1 000 000', 350, 550);
+  c.fillStyle = '#141110'; c.font = '700 28px Arial'; c.fillText('INSTANT WINNER • 1995', 350, 700);
+  for (let i = 0; i < 20; i++) c.fillRect(60 + i * 30, 820, 8, 80);
+});
+
+export class World {
+  root = new THREE.Group();
+  sets: Record<string, THREE.Group> = {};
+  rollers: THREE.Mesh[] = [];
+  ticket!: THREE.Mesh;
+  money: THREE.Mesh[] = [];
+  car!: THREE.Group;
+  cuffs!: THREE.Mesh[];
+  finalTicket!: THREE.Mesh;
+
+  constructor() {
+    this.root.add(new THREE.HemisphereLight('#dbe8ff', '#2b2420', 0.9));
+    const sun = new THREE.DirectionalLight('#fff1dc', 2.0); sun.position.set(6, 10, 8); sun.castShadow = true; this.root.add(sun);
+    for (const s of SHOTS) { const g = new THREE.Group(); g.visible = false; this.root.add(g); this.sets[s.set] = g; }
+    this.buildPrint();
+    this.buildTicket();
+    this.buildOffice();
+    this.buildScheme();
+    this.buildVault();
+    this.buildFbi();
+    this.buildStreet();
+    this.buildFinal();
+  }
+
+  buildPrint() {
+    const g = this.sets.print;
+    box(22, 0.3, 22, '#1a1a22', 0, -0.15, 0, g);
+    box(22, 9, 0.4, '#2b2b36', 0, 4.5, -6, g);
+    box(5.4, 4.4, 3.2, '#3b4050', 0, 2.2, -1.8, g);
+    const r1 = cyl(0.8, 0.8, 4.0, '#7a8494', 0, 3.5, -1.2, g, [0, 0, Math.PI / 2]);
+    const r2 = cyl(0.8, 0.8, 4.0, '#7a8494', 0, 1.9, -1.2, g, [0, 0, Math.PI / 2]);
+    this.rollers = [r1, r2];
+    const web = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 4.2), new THREE.MeshToonMaterial({ color: '#efe4cc', gradientMap: grad, side: THREE.DoubleSide }));
+    web.position.set(0, 2.6, 0.6); web.rotation.x = 0.9; g.add(web);
+    box(4.2, 0.3, 6.2, '#2a2e38', 0, 1.0, 3.0, g);
+    for (let z = 0; z < 6; z++) { const r = cyl(0.1, 0.1, 3.8, '#555d6a', 0, 1.2, 0.2 + z * 0.9, g, [0, 0, Math.PI / 2]); }
+    for (let i = 0; i < 4; i++) box(1.4, 1.2 + i * 0.4, 1.2, '#e7dcc4', -5 + i * 3.2, 0.6 + i * 0.2, 2.4, g);
+    for (const x of [-3.2, 0, 3.2]) { cyl(0.08, 0.08, 2, '#444', x, 6.0, 1, g); const b = sph(0.2, '#ff2b22', x, 5.0, 1, g); }
+    figure('#334d6e', '#e6b488', -2.4, 0.2, g, 1.0, '#252930');
+    figure('#26364a', '#e6b488', 2.6, 1.0, g, 1.0, '#252930');
+  }
+
+  buildTicket() {
+    const g = this.sets.ticket;
+    box(16, 0.3, 16, '#3a2a1c', 0, -0.15, 0, g);
+    box(16, 8, 0.4, '#4a3624', 0, 4, -5.5, g);
+    this.ticket = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 6.4), new THREE.MeshBasicMaterial({ map: ticketTex(), side: THREE.DoubleSide }));
+    this.ticket.position.set(0, 0.8, 0.6); this.ticket.rotation.set(-Math.PI / 2 + 0.12, 0, 0.06); g.add(this.ticket);
+    box(5.2, 0.08, 6.8, '#5a3a22', 0, 0.05, 0.6, g);
+    for (let i = 0; i < 6; i++) box(0.5, 0.25, 0.9, '#e7dcc4', -2.2 + (i % 3) * 2.2, 0.2, -2.5 + Math.floor(i / 3) * 0.9, g);
+  }
+
+  buildOffice() {
+    const g = this.sets.office;
+    box(18, 0.3, 18, '#1b1714', 0, -0.15, 0, g);
+    box(18, 8, 0.4, '#3a2a20', 0, 4, -5.5, g);
+    box(5.4, 0.2, 2.4, '#5a3a22', 0, 1.1, 0.4, g);
+    for (const [x, z] of [[-2.4, -0.6], [2.4, -0.6], [-2.4, 1.4], [2.4, 1.4]]) box(0.2, 1.1, 0.2, '#3a2616', x, 0.55, z, g);
+    box(1.8, 2.2, 1.6, '#3b4048', -4.2, 1.1, -1.6, g);
+    for (let i = 0; i < 8; i++) { const m = box(0.5, 0.2, 0.3, '#3f7a4a', 0.2 + (i % 4) * 0.5, 1.25 + Math.floor(i / 4) * 0.2, 0.5, g); this.money.push(m); }
+    box(0.7, 0.1, 0.5, '#d8c07a', 0.6, 1.65, 0.5, g);
+    cyl(0.2, 0.2, 0.1, '#d9a83b', -1.2, 1.2, 0.2, g); cyl(0.04, 0.04, 0.7, '#d9a83b', -1.2, 1.55, 0.2, g);
+    box(0.6, 0.25, 0.35, '#1f6e43', -1.2, 1.9, 0.2, g);
+    plane(3.4, 2.0, texCanvas(512, 300, (c) => { c.fillStyle = '#e8dfc8'; c.fillRect(0, 0, 512, 300); c.fillStyle = '#9db58d'; c.fillRect(30, 40, 450, 210); c.fillStyle = '#141110'; c.font = '900 32px Arial'; c.fillText('США', 220, 160); }), 2.2, 3.4, -5.25, g);
+    figure('#25262c', '#e8b98e', 0.2, 1.9, g, 1.1, '#111116');
+  }
+
+  buildScheme() {
+    const g = this.sets.scheme;
+    box(16, 0.3, 16, '#3b332d', 0, -0.15, 0, g);
+    box(16, 8, 0.4, '#594b3e', 0, 4, -5.2, g);
+    box(5.4, 0.2, 1.8, '#5a3a22', 0, 1.05, 0.6, g);
+    for (let i = 0; i < 6; i++) box(0.6, 0.08, 0.4, '#d4b475', -1.2 + i * 0.48, 1.2, 0.6, g);
+    for (let i = 0; i < 4; i++) box(0.4, 0.04, 0.55, '#d42c24', -0.7 + i * 0.5, 1.22, 1.0, g);
+    for (let i = 0; i < 4; i++) box(0.45, 0.18, 0.25, '#3f7a4a', 1.8, 1.2 + i * 0.2, 0.4, g);
+    figure('#2f4d7a', '#e8b98e', -2.2, 1.4, g, 1.0, '#131722');
+    figure('#287a6c', '#eab98e', -0.8, 1.5, g, 1.0, '#1c2b4a');
+    figure('#6e3848', '#e2ae82', 0.7, 1.5, g, 1.0, '#2e221a');
+  }
+
+  buildVault() {
+    const g = this.sets.vault;
+    box(18, 0.3, 18, '#161b18', 0, -0.15, 0, g);
+    box(18, 9, 0.4, '#1b211d', 0, 4.5, -5.8, g);
+    plane(5.4, 2.6, texCanvas(800, 400, (c) => { c.fillStyle = '#12151c'; c.fillRect(0, 0, 800, 400); c.fillStyle = '#ffd43b'; c.font = '900 64px Arial Black'; c.textAlign = 'center'; c.fillText('12 ЛЕТ • 1989–2001', 400, 120); c.fillStyle = '#ff3b30'; c.font = '900 92px Arial Black'; c.fillText('$24 000 000', 400, 280); }), 0, 4.6, -5.5, g);
+    for (let i = 0; i < 10; i++) { const x = -3.6 + (i % 5) * 1.8; const z = -2 + Math.floor(i / 5) * 1.6; for (let k = 0; k < 3; k++) { const m = box(0.9, 0.8 + k * 0.6, 0.9, '#3f7a4a', x, 0.5 + k * 0.3, z, g); this.money.push(m); } }
+    figure('#1b2436', '#e6b284', 0.2, 1.6, g, 0.9, '#141b29');
+  }
+
+  buildFbi() {
+    const g = this.sets.fbi;
+    box(16, 0.3, 16, '#2b323d', 0, -0.15, 0, g);
+    box(16, 8, 0.4, '#394352', 0, 4, -5.2, g);
+    box(5.2, 0.2, 2.0, '#3a414c', 0, 1.05, 0.5, g);
+    for (let i = 0; i < 6; i++) box(0.7, 0.12, 0.9, '#d4b475', -1.6 + (i % 3) * 0.8, 1.2 + Math.floor(i / 3) * 0.12, 0.4, g);
+    plane(1.2, 1.5, texCanvas(512, 640, (c) => { c.fillStyle = '#f0be3d'; c.beginPath(); c.moveTo(256, 40); c.lineTo(440, 130); c.quadraticCurveTo(450, 380, 256, 600); c.quadraticCurveTo(62, 380, 72, 130); c.closePath(); c.fill(); c.strokeStyle = '#141110'; c.lineWidth = 16; c.stroke(); c.fillStyle = '#17376e'; c.fillRect(140, 160, 232, 80); c.fillStyle = '#ffd54a'; c.font = '900 42px Arial Black'; c.textAlign = 'center'; c.fillText('ФБР • FBI', 256, 214); }), 0, 1.9, 1.2, g);
+    figure('#3d3934', '#e4b288', -1.4, 1.6, g, 1.0, '#1e1b18');
+    figure('#8c7d65', '#dfb086', 1.4, 1.6, g, 1.0, '#423326');
+  }
+
+  buildStreet() {
+    const g = this.sets.street;
+    box(28, 0.3, 28, '#24272e', 0, -0.15, 0, g);
+    for (let i = 0; i < 4; i++) box(6, 9, 4, i % 2 ? '#2c2b30' : '#343038', -9 + i * 6, 4.5, -8, g);
+    for (let i = 0; i < 8; i++) box(0.6, 0.9, 0.05, '#ffd06a', -10 + i * 2.6, 3 + (i % 3) * 1.2, -5.9, g);
+    this.car = new THREE.Group();
+    box(4.4, 0.8, 2, '#171b24', 0, 0.6, 0, this.car);
+    box(2.2, 0.7, 1.8, '#f2f4f8', -0.2, 1.3, 0, this.car);
+    for (const [x, z] of [[-1.3, -0.9], [1.3, -0.9], [-1.3, 0.9], [1.3, 0.9]]) cyl(0.35, 0.35, 0.25, '#1b1b20', x, 0.35, z, this.car, [Math.PI / 2, 0, 0]);
+    this.car.position.set(3, 0, -2); this.car.rotation.y = -0.3; g.add(this.car);
+    figure('#1b2436', '#e6b284', 0, 1.8, g, 1.0, '#141b29');
+    figure('#3d3934', '#e4b288', -1.3, 1.5, g, 1.0, '#1e1b18');
+  }
+
+  buildFinal() {
+    const g = this.sets.final;
+    box(16, 0.3, 16, '#1a1a1e', 0, -0.15, 0, g);
+    box(16, 8, 0.4, '#2b2b33', 0, 4, -5.2, g);
+    this.finalTicket = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 4.5), new THREE.MeshBasicMaterial({ map: ticketTex(), side: THREE.DoubleSide }));
+    this.finalTicket.position.set(0, 2.0, 0.8); this.finalTicket.rotation.set(-0.4, 0.2, 0.2); g.add(this.finalTicket);
+  }
+
+  update(id: number, f: number, camera: THREE.PerspectiveCamera) {
+    const s = SHOTS[id - 1];
+    for (const k in this.sets) this.sets[k].visible = k === s.set;
+    const u = Math.min(1, Math.max(0, (f - s.a) / Math.max(1, s.b - s.a)));
+    const t = u * u * (3 - 2 * u);
+    camera.position.set(
+      s.camFrom.pos[0] + (s.camTo.pos[0] - s.camFrom.pos[0]) * t,
+      s.camFrom.pos[1] + (s.camTo.pos[1] - s.camFrom.pos[1]) * t,
+      s.camFrom.pos[2] + (s.camTo.pos[2] - s.camFrom.pos[2]) * t
+    );
+    const look = new THREE.Vector3(
+      s.camFrom.look[0] + (s.camTo.look[0] - s.camFrom.look[0]) * t,
+      s.camFrom.look[1] + (s.camTo.look[1] - s.camFrom.look[1]) * t,
+      s.camFrom.look[2] + (s.camTo.look[2] - s.camFrom.look[2]) * t
+    );
+    camera.lookAt(look);
+    camera.fov = s.camFrom.fov + (s.camTo.fov - s.camFrom.fov) * t;
+    camera.updateProjectionMatrix();
+    const time = f / 30;
+    this.rollers.forEach((r) => (r.rotation.y = time * 2));
+    if (this.ticket) this.ticket.rotation.z = 0.06 + Math.sin(time * 1.5) * 0.04;
+    this.money.forEach((m, i) => (m.position.y += Math.sin(time * 2 + i) * 0.0005));
+    if (this.car) this.car.position.x = 3 + Math.sin(time * 0.5) * 0.2;
+    if (this.finalTicket) { this.finalTicket.position.y = 2.6 - u * 1.2; this.finalTicket.rotation.z = 0.2 + u * 0.8; }
+    return look;
+  }
+}
