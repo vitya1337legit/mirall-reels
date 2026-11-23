@@ -14,11 +14,11 @@ export const STORY = {
       set: 'printshop',
       light: 'printshop_red',
       grade: { sat: 1.12, vig: 0.26, px: 2.4 },
-      camFrom: { pos: [6.0, 3.0, 10.5], look: [0.5, 1.9, 1.5], fov: 48 },
-      camTo: { pos: [4.8, 2.6, 9.0], look: [0.5, 1.9, 1.5], fov: 44 },
+      camFrom: { pos: [5.2, 2.8, 9.8], look: [0.2, 1.8, 1.2], fov: 48 },
+      camTo: { pos: [4.2, 2.4, 8.4], look: [0.2, 1.8, 1.2], fov: 44 },
       actors: {
-        jacobson: { x: 2.6, y: 0, z: 3.6, emotion: 'smirk', speaking: true },
-        worker1: { x: -2.45, y: 0, z: -0.4, emotion: 'neutral', speaking: false },
+        jacobson: { x: 1.6, y: 0, z: 3.2, emotion: 'smirk', speaking: true, walking: true },
+        worker1: { x: -2.45, y: 0, z: -0.4, emotion: 'neutral', speaking: false, walking: true },
         worker2: { x: 2.85, y: 0, z: -1.4, emotion: 'neutral', speaking: false },
       },
     },
@@ -79,8 +79,8 @@ export const STORY = {
       camTo: { pos: [0.0, 1.8, 5.2], look: [0.0, 1.1, 1.3], fov: 42 },
       actors: {
         jacobson: { x: -1.5, y: 0, z: 1.5, emotion: 'smirk', speaking: true },
-        winner1: { x: -0.35, y: 0, z: 1.5, emotion: 'triumph', speaking: false },
-        winner2: { x: 0.9, y: 0, z: 1.5, emotion: 'persuade', speaking: true },
+        winner1: { x: -0.35, y: 0, z: 1.5, emotion: 'triumph', speaking: false, walking: true },
+        winner2: { x: 0.9, y: 0, z: 1.5, emotion: 'persuade', speaking: true, walking: true },
         winner3: { x: 2.0, y: 0, z: 1.8, emotion: 'shock', speaking: false },
       },
     },
@@ -111,8 +111,8 @@ export const STORY = {
       camFrom: { pos: [0.0, 2.4, 7.0], look: [0.0, 1.35, 1.0], fov: 46 },
       camTo: { pos: [0.0, 2.1, 6.0], look: [0.0, 1.3, 1.0], fov: 42 },
       actors: {
-        fbi1: { x: -1.15, y: 0, z: 1.4, emotion: 'strict', speaking: true },
-        fbi2: { x: 1.15, y: 0, z: 1.4, emotion: 'angry', speaking: false },
+        fbi1: { x: -1.15, y: 0, z: 1.4, emotion: 'strict', speaking: true, walking: true },
+        fbi2: { x: 1.15, y: 0, z: 1.4, emotion: 'angry', speaking: false, walking: true },
         winner3: { x: 2.3, y: 0, z: 1.7, emotion: 'shock', speaking: false },
       },
     },
@@ -151,6 +151,18 @@ export const STORY = {
   ],
 };
 
+const ALT = {
+  1: { pos: [3.4, 1.25, 6.4], look: [0.0, 1.9, 1.2], fov: 50 },
+  2: { pos: [0.0, 4.6, 3.4], look: [0.0, 0.6, 0.5], fov: 42 },
+  3: { pos: [3.8, 1.9, 4.8], look: [0.0, 2.1, 0.3], fov: 44 },
+  4: { pos: [1.9, 1.75, 3.9], look: [0.2, 1.3, 1.3], fov: 42 },
+  5: { pos: [0.0, 1.65, 4.1], look: [0.0, 1.15, 1.3], fov: 44 },
+  6: { pos: [0.0, 0.95, 6.2], look: [0.0, 3.6, -3.0], fov: 52 },
+  7: { pos: [0.0, 1.85, 3.7], look: [0.0, 1.55, 1.1], fov: 38 },
+  8: { pos: [3.2, 1.15, 5.2], look: [0.0, 1.2, -0.1], fov: 46 },
+  9: { pos: [0.0, 3.2, 9.0], look: [0.0, 2.1, -1.4], fov: 50 },
+};
+
 function smoothstep(t) {
   return t * t * (3 - 2 * t);
 }
@@ -160,27 +172,33 @@ export function applyFrame(frame, camera, world) {
     STORY.shots.find((s) => frame >= s.startFrame && frame < s.endFrame) ||
     STORY.shots[STORY.shots.length - 1];
 
-  const span = Math.max(1, shot.endFrame - shot.startFrame);
-  const rawT = Math.min(1, Math.max(0, (frame - shot.startFrame) / span));
+  const mid = (shot.startFrame + shot.endFrame) / 2;
+  const alt = ALT[shot.id];
+  const useAlt = !!(alt && frame >= mid);
+  const halfStart = useAlt ? mid : shot.startFrame;
+  const halfEnd = useAlt ? shot.endFrame : mid;
+  const rawT = Math.min(1, Math.max(0, (frame - halfStart) / Math.max(1, halfEnd - halfStart)));
   const t = smoothstep(rawT);
   const timeSec = frame / STORY.fps;
+  const cf = useAlt ? alt : shot.camFrom;
+  const ct = useAlt ? alt : shot.camTo;
 
   // Лёгкое кинематографическое дыхание камеры
   const driftX = Math.sin(frame * 0.045) * 0.022;
   const driftY = Math.cos(frame * 0.035) * 0.016;
 
   camera.position.set(
-    shot.camFrom.pos[0] + (shot.camTo.pos[0] - shot.camFrom.pos[0]) * t + driftX,
-    shot.camFrom.pos[1] + (shot.camTo.pos[1] - shot.camFrom.pos[1]) * t + driftY,
-    shot.camFrom.pos[2] + (shot.camTo.pos[2] - shot.camFrom.pos[2]) * t
+    cf.pos[0] + (ct.pos[0] - cf.pos[0]) * t + driftX,
+    cf.pos[1] + (ct.pos[1] - cf.pos[1]) * t + driftY,
+    cf.pos[2] + (ct.pos[2] - cf.pos[2]) * t
   );
-  camera.fov = shot.camFrom.fov + (shot.camTo.fov - shot.camFrom.fov) * t;
+  camera.fov = cf.fov + (ct.fov - cf.fov) * t;
   camera.updateProjectionMatrix();
 
   const lookTarget = [
-    shot.camFrom.look[0] + (shot.camTo.look[0] - shot.camFrom.look[0]) * t,
-    shot.camFrom.look[1] + (shot.camTo.look[1] - shot.camFrom.look[1]) * t,
-    shot.camFrom.look[2] + (shot.camTo.look[2] - shot.camFrom.look[2]) * t,
+    cf.look[0] + (ct.look[0] - cf.look[0]) * t,
+    cf.look[1] + (ct.look[1] - cf.look[1]) * t,
+    cf.look[2] + (ct.look[2] - cf.look[2]) * t,
   ];
   camera.lookAt(lookTarget[0], lookTarget[1], lookTarget[2]);
 

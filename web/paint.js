@@ -480,12 +480,12 @@ export function paintCounterDisplayTexture(topText = '12 ЛЕТ', bottomText = '
 
   ctx.textAlign = 'center';
   ctx.fillStyle = '#ffd43b';
-  ctx.font = '900 96px Arial Black, sans-serif';
-  ctx.fillText(topText, 512, 162);
+  ctx.font = '900 78px Arial Black, sans-serif';
+  ctx.fillText(topText, 512, 158);
 
   ctx.fillStyle = accent;
-  ctx.font = '900 112px Arial Black, sans-serif';
-  ctx.fillText(bottomText, 512, 396);
+  ctx.font = '900 72px Arial Black, sans-serif';
+  ctx.fillText(bottomText, 512, 386);
 
   return makeTexture(canvas, 1, 1, true);
 }
