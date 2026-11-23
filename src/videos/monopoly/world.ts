@@ -82,8 +82,6 @@ const ticketTex = () => texCanvas(700, 980, (c) => {
 const ALT: Record<number, { pos: [number, number, number]; look: [number, number, number]; fov: number }> = {
   5: { pos: [0.6, 1.35, 2.6], look: [0.6, 1.12, 0.8], fov: 30 },
   6: { pos: [0.0, 3.9, 4.8], look: [0.0, 4.4, -3.2], fov: 38 },
-  7: { pos: [1.2, 1.6, 2.2], look: [1.2, 1.5, 0.2], fov: 30 },
-  8: { pos: [1.6, 1.1, 4.2], look: [0.2, 0.9, -0.6], fov: 38 },
 };
 
 export class World {
