@@ -19,17 +19,18 @@ jobs:
         run: |
           START=$(( ${{ matrix.chunk }} * 50 ))
           END=$(( START + 49 ))
-          npx remotion render src/index.ts BridgeShort out/chunk.mp4 --frames=$START-$END --concurrency=2 --timeout=180000 --scale=0.5
+          npx remotion render src/index.ts BridgeShort out/chunk-${{ matrix.chunk }}.mp4 --frames=$START-$END --concurrency=2 --timeout=180000 --scale=0.5
       - uses: actions/upload-artifact@v4
         with:
           name: chunk-${{ matrix.chunk }}
-          path: out/chunk.mp4
+          path: out/chunk-${{ matrix.chunk }}.mp4
   merge:
     needs: chunk
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
         with: { path: chunks, merge-multiple: true }
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - run: |
           ls -lh chunks
           for f in $(ls chunks/*.mp4 | sort -V); do echo "file '$PWD/$f'"; done > list.txt
