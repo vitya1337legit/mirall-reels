@@ -1,5 +1,6 @@
 name: render-remotion
-on: workflow_dispatch
+on:
+  workflow_dispatch:
 jobs:
   chunk:
     runs-on: ubuntu-latest
