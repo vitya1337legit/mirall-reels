@@ -5,6 +5,7 @@ import { ThreeCanvas } from "@remotion/three";
 import { useThree } from "@react-three/fiber";
 import { EffectComposer } from "@react-three/postprocessing";
 import { InkPass } from "../bridge/ink";
+import { KuwaharaEffect } from "./Kuwahara";
 import { World } from "./world";
 import { TOTAL, shotAt } from "./story";
 
@@ -13,12 +14,14 @@ const Inner: React.FC = () => {
   const { camera, scene } = useThree();
   const world = useMemo(() => new World(), []);
   const ink = useMemo(() => new InkPass(scene, camera as THREE.PerspectiveCamera), [scene, camera]);
+  const kuwahara = useMemo(() => new KuwaharaEffect(2.2), []);
   world.update(shotAt(f).id, f, camera as THREE.PerspectiveCamera);
   return (
     <>
       <primitive object={world.root} dispose={null} />
       <EffectComposer multisampling={0}>
         <primitive object={ink} dispose={null} />
+        <primitive object={kuwahara} dispose={null} />
       </EffectComposer>
     </>
   );
